@@ -1,21 +1,15 @@
-import socket
-import os
-import time
+import socket, os, time
 
 def handle_client(sock, addr):
     print(f"[+] {addr} terhubung")
     try:
         req = sock.recv(1024).decode()
+        if not req: return
         print(f"[REQ] {req.strip()}")
-        if not req:
-            return
-
-        print(f"[INFO] Menunggu 5 detik sebelum respon ke {addr}")
         time.sleep(5)
 
-        path = req.split()[1]
-        path = '/index.html' if path == '/' else path
-        file = '.' + path
+        path = req.split()[1] if len(req.split()) > 1 else '/'
+        file = '.' + (path if path != '/' else '/index.html')
 
         if os.path.isfile(file):
             with open(file, 'rb') as f:
@@ -40,7 +34,7 @@ def start_server(host='127.0.0.1', port=8080):
         print(f"[START] Server berjalan di {host}:{port}")
         while True:
             c, a = s.accept()
-            handle_client(c, a) 
+            handle_client(c, a)
 
 if __name__ == "__main__":
     start_server()
