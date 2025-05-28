@@ -40,7 +40,7 @@ def start_server(host='127.0.0.1', port=8080):
         print(f"[START] Server berjalan di {host}:{port}")
         while True:
             c, a = s.accept()
-            handle_client(c, a)  # single-threaded, proses satu-satu
+            handle_client(c, a) 
 
 if __name__ == "__main__":
     start_server()
