@@ -1,59 +1,40 @@
-# multithread
-import socket
-import threading
-import os
+import socket, threading, os
 
-# Fungsi untuk menangani request dari tiap klien
-def handle_client(client_socket, client_address):
-    print(f"[+] Terhubung dengan {client_address}")
-
+def handle_client(sock, addr):
+    print(f"[+] {addr} terhubung")
     try:
-        request = client_socket.recv(1024).decode()
-        print(f"[REQUEST] {request}")
+        req = sock.recv(1024).decode()
+        print(f"[REQ] {req}")
+        if not req: return
 
-        if not request:
-            client_socket.close()
-            return
+        path = req.split()[1]
+        path = '/index.html' if path == '/' else path
+        full_path = '.' + path
 
-        # Parsing request HTTP
-        headers = request.split('\n')
-        filename = headers[0].split()[1]
-
-        if filename == '/':
-            filename = '/index.html'
-
-        filepath = '.' + filename
-        if os.path.isfile(filepath):
-            with open(filepath, 'rb') as f:
+        if os.path.isfile(full_path):
+            with open(full_path, 'rb') as f:
                 content = f.read()
-            response = b"HTTP/1.1 200 OK\r\n"
-            response += b"Content-Type: text/html\r\n"
-            response += b"Content-Length: " + str(len(content)).encode() + b"\r\n"
-            response += b"\r\n" + content
+            header = b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n"
         else:
-            content = b"<html><body><h1>404 Not Found</h1></body></html>"
-            response = b"HTTP/1.1 404 Not Found\r\n"
-            response += b"Content-Type: text/html\r\n"
-            response += b"Content-Length: " + str(len(content)).encode() + b"\r\n"
-            response += b"\r\n" + content
+            content = b"<h1>404 Not Found</h1>"
+            header = b"HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\n"
 
-        client_socket.sendall(response)
+        header += f"Content-Length: {len(content)}\r\n\r\n".encode()
+        sock.sendall(header + content)
     except Exception as e:
-        print(f"[ERROR] {e}")
+        print(f"[ERR] {e}")
     finally:
-        client_socket.close()
-        print(f"[-] Koneksi dengan {client_address} ditutup")
+        sock.close()
+        print(f"[-] {addr} ditutup")
 
-def start_server(host='127.0.0.1', port=6789):
-    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind((host, port))
-    server.listen(5)
-    print(f"[START] Server berjalan di {host}:{port}")
-
-    while True:
-        client_socket, client_address = server.accept()
-        client_thread = threading.Thread(target=handle_client, args=(client_socket, client_address))
-        client_thread.start()
+def start_server(host='127.0.0.1', port=1234):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind((host, port))
+        s.listen()
+        print(f"[START] {host}:{port}")
+        while True:
+            c, a = s.accept()
+            threading.Thread(target=handle_client, args=(c, a)).start()
 
 if __name__ == "__main__":
     start_server()
